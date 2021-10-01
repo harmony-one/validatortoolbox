@@ -11,7 +11,7 @@ This repository provides two functions in one application:
 -   Harmony Validator Menu Driven Installer
 -   Harmony Validator Management Interface Menu
 
-[![Easy Node - Harmony Validator Operations Toolbox](http://img.youtube.com/vi/ydvMXFDrHwg/0.jpg)](http://www.youtube.com/watch?v=ydvMXFDrHwg "Easy Node - Harmony Validator Operations Toolbox")
+[![Easy Node - Harmony Validator Operations Toolbox](http://img.youtube.com/vi/mtlgZQc7BjM/0.jpg)](https://www.youtube.com/watch?v=mtlgZQc7BjM "Easy Node - Harmony Validator Operations Toolbox")
 
 ## Quickstart Guide
 ### Pre-Installation Requirements:

@@ -1,11 +1,10 @@
 import os
 import shutil
-import socket
-import urllib.request
 import requests
 import time
 import subprocess
 import dotenv
+from utils.config import validatorToolbox
 from os import environ
 from dotenv import load_dotenv
 from datetime import datetime
@@ -13,33 +12,8 @@ from collections import namedtuple
 from colorama import Fore, Back, Style
 from pyhmy import blockchain, account
 from requests.exceptions import HTTPError
-
 from utils.shared import process_command, printStars, printStarsReset, printWhiteSpace, askYesNo, return_txt, installHarmonyApp, installHmyApp, getSignPercent, loadVarFile
 from utils.allsysinfo import allSysInfo
-
-
-serverHostName = socket.gethostname()
-userHomeDir = os.path.expanduser("~")
-dotenv_file = f"{userHomeDir}/.easynode.env"
-activeUserName = os.path.split(userHomeDir)[-1]
-harmonyDirPath = os.path.join(userHomeDir, "harmony")
-harmonyAppPath = os.path.join(harmonyDirPath, "harmony")
-hmyAppPath = os.path.join(harmonyDirPath, "hmy")
-blskeyDirPath = os.path.join(hmyAppPath, ".hmy", "blskeys")
-hmyWalletStorePath = os.path.join(userHomeDir, ".hmy_cli", "account-keys", activeUserName)
-toolboxLocation = os.path.join(userHomeDir, "validatortoolbox")
-dotenv_file = f"{userHomeDir}/.easynode.env"
-passwordPath = os.path.join(harmonyDirPath, "passphrase.txt")
-# Static rpc for balances
-main_net_rpc = 'https://rpc.s0.t.hmny.io'
-main_net_call = '/home/serviceharmony/harmony/hmy --node="https://api.s0.t.hmny.io"'
-test_net_rpc = 'https://rpc.s0.b.hmny.io'
-test_net_call = '/home/serviceharmony/harmony/hmy --node="https://api.s0.b.hmny.io"'
-# Get our IP
-ourExternalIPAddress = urllib.request.urlopen("https://ident.me").read().decode("utf8")
-mainMenuRegular = os.path.join(toolboxLocation, "toolbox", "messages", "regularmenu.txt")
-mainMenuFull = os.path.join(toolboxLocation, "toolbox", "messages", "fullmenu.txt")
-
 
 def collectRewards(networkCall):
     os.system(
@@ -56,7 +30,7 @@ def rewardsCollecter() -> None:
         f"*\n* For your validator wallet {environ.get('VALIDATOR_WALLET')}\n* Would you like to collect your rewards on the Harmony mainnet? (YES/NO) "
     )
     if question:
-        collectRewards(main_net_call)
+        collectRewards(validatorToolbox.main_net_call)
         printStars()
         print(
             Fore.GREEN + f"* mainnet rewards for {environ.get('VALIDATOR_WALLET')} have been collected." + Style.RESET_ALL
@@ -66,7 +40,7 @@ def rewardsCollecter() -> None:
         f"*\n* For your validator wallet {environ.get('VALIDATOR_WALLET')}\n* Would you like to collect your rewards on the Harmony testnet? (YES/NO) "
     )
     if question:
-        collectRewards(test_net_call)
+        collectRewards(validatorToolbox.test_net_call)
         print()
         printStars()
         print(
@@ -79,7 +53,7 @@ def rewardsCollecter() -> None:
 
 
 def menuTopperRegular() -> None:
-    current_epoch = blockchain.get_current_epoch(main_net_rpc)
+    current_epoch = blockchain.get_current_epoch(validatorToolbox.main_net_rpc)
     os.system("clear")
     # Print Menu
     print(Style.RESET_ALL)
@@ -101,11 +75,11 @@ def menuTopperRegular() -> None:
     )
     print(
         "* Server Hostname & IP:             "
-        + serverHostName
+        + validatorToolbox.serverHostName
         + Style.RESET_ALL
         + " - "
         + Fore.YELLOW
-        + ourExternalIPAddress
+        + validatorToolbox.ourExternalIPAddress
         + Style.RESET_ALL
     )
     harmonyServiceStatus()
@@ -132,7 +106,7 @@ def menuTopperRegular() -> None:
 
 
 def menuTopperFull() -> None:
-    current_epoch = blockchain.get_current_epoch(main_net_rpc)
+    current_epoch = blockchain.get_current_epoch(validatorToolbox.main_net_rpc)
     os.system("clear")
     # Print Menu
     print(Style.RESET_ALL)
@@ -148,11 +122,11 @@ def menuTopperFull() -> None:
     printStars()
     print(
         "* Server Hostname & IP:             "
-        + serverHostName
+        + validatorToolbox.serverHostName
         + Style.RESET_ALL
         + " - "
         + Fore.YELLOW
-        + ourExternalIPAddress
+        + validatorToolbox.ourExternalIPAddress
         + Style.RESET_ALL
     )
     harmonyServiceStatus()
@@ -173,7 +147,7 @@ def menuRegular() -> None:
     menuTopperRegular()
     print(Style.RESET_ALL)
     for x in return_txt(
-        mainMenuRegular
+        validatorToolbox.mainMenuRegular
     ):
         x = x.strip()
         try:
@@ -187,7 +161,7 @@ def menuFull() -> None:
     menuTopperFull()
     print(Style.RESET_ALL)
     for x in return_txt(
-        mainMenuFull
+        validatorToolbox.mainMenuFull
     ):
         x = x.strip()
         try:
@@ -209,8 +183,13 @@ def getWalletJSON(wallet: str) -> str:
     #        print(jsonResponse)
     except HTTPError as http_err:
             print(f'HTTP error occurred: {http_err}')
+            print(f'* You have not created your validator yet, try again after you add one!\n* cd ~/harmony\n* ./hmy keys recover-from-mnemonic {validatorToolbox.activeUserName} {environ.get("PASS_SWITCH")}')
+            input("Press ENTER to return to the main menu.")
+            return
     except Exception as err:
             print(f'Other error occurred: {err}')
+            input("Press ENTER to return to the main menu.")
+            return
     return(jsonResponse)
 
 
@@ -370,7 +349,7 @@ def diskFreeSpace(mountPoint: str) -> str:
 
 
 def freeSpaceCheck() -> str:
-    ourDiskMount = get_mount_point(harmonyDirPath)
+    ourDiskMount = get_mount_point(validatorToolbox.harmonyDirPath)
     total, used, free = shutil.disk_usage(ourDiskMount)
     free = diskFreeSpace(ourDiskMount)
     return free
@@ -380,8 +359,8 @@ def serverDriveCheck() -> None:
     if environ.get("MOUNT_POINT") is not None:
         ourDiskMount = environ.get("MOUNT_POINT")
     else:
-        dotenv.set_key(dotenv_file, "MOUNT_POINT", harmonyDirPath)
-        load_dotenv(dotenv_file)
+        dotenv.set_key(validatorToolbox.dotenv_file, "MOUNT_POINT", validatorToolbox.harmonyDirPath)
+        load_dotenv(validatorToolbox.dotenv_file)
         ourDiskMount = environ.get("MOUNT_POINT")
     printStarsReset()
     print("Here are all of your mount points: ")
@@ -486,10 +465,10 @@ def serviceMenuOption() -> None:
 
 
 def makeBackupDir() -> str:
-    if not os.path.isdir(f"{harmonyDirPath}/harmony_backup"):
+    if not os.path.isdir(f"{validatorToolbox.harmonyDirPath}/harmony_backup"):
         printStarsReset()
         print("Backup directory not found, creating folder")
-        os.system(f"mkdir -p {harmonyDirPath}/harmony_backup")
+        os.system(f"mkdir -p {validatorToolbox.harmonyDirPath}/harmony_backup")
         return
     return
 
@@ -500,30 +479,30 @@ def hmyCLIUpgrade():
         "Are you sure you would like to proceed with updating the Harmony CLI file?\n\nType 'Yes' or 'No' to continue"
     )
     if question:
-        os.chdir(f"{harmonyDirPath}")
+        os.chdir(f"{validatorToolbox.harmonyDirPath}")
         makeBackupDir()
-        os.system(f"cp {hmyAppPath} {harmonyDirPath}/harmony_backup")
+        os.system(f"cp {validatorToolbox.hmyAppPath} {validatorToolbox.harmonyDirPath}/harmony_backup")
         printStars()
-        installHmyApp(harmonyDirPath)
+        installHmyApp(validatorToolbox.harmonyDirPath)
         printStars()
         print("Harmony cli has been updated to: ")
-        os.system(f"{hmyAppPath} version")
+        os.system(f"{validatorToolbox.hmyAppPath} version")
         printStars()
         input("Update completed, press ENTER to return to the main menu. ")
         return
 
 
 def upgradeHarmonyApp(testOrMain):
-    os.chdir(f"{harmonyDirPath}")
+    os.chdir(f"{validatorToolbox.harmonyDirPath}")
     printStarsReset()
     print("Currently installed version: ")
     os.system("./harmony -V")
     makeBackupDir()
-    os.system(f"cp {harmonyDirPath}/harmony {harmonyDirPath}/harmony_backup")
+    os.system(f"cp {validatorToolbox.harmonyDirPath}/harmony {validatorToolbox.harmonyDirPath}/harmony_backup")
     printStars()
     print("Downloading current harmony binary file from harmony.one: ")
     printStars()
-    installHarmonyApp(harmonyDirPath)
+    installHarmonyApp(validatorToolbox.harmonyDirPath)
     printStars()
     print("Updated version: ")
     os.system("./harmony -V")
@@ -542,10 +521,10 @@ def runStats() -> str:
     networkNumCall = environ.get("NETWORK_S_CALL")
     printStars()
     print(
-        f"* Current Date & Time: {timeNow}\n* Current Status of our server {serverHostName} currently on Shard {environ.get('SHARD')}:\n"
+        f"* Current Date & Time: {timeNow}\n* Current Status of our server {validatorToolbox.serverHostName} currently on Shard {environ.get('SHARD')}:\n"
     )
     os.system(
-        f"{hmyAppPath} blockchain latest-headers | grep epoch && {hmyAppPath} blockchain latest-headers | grep viewID && {hmyAppPath} blockchain latest-headers | grep shardID"
+        f"{validatorToolbox.hmyAppPath} blockchain latest-headers | grep epoch && {validatorToolbox.hmyAppPath} blockchain latest-headers | grep viewID && {validatorToolbox.hmyAppPath} blockchain latest-headers | grep shardID"
     )
     print(
         f"\n* Current Status of the Harmony Blockchain Shard {environ.get('SHARD')}:\n"
@@ -558,9 +537,10 @@ def runStats() -> str:
 
 
 def getDBSize(ourShard) -> str:
-    harmonyDBSize = subprocess.getoutput(f"du -h {harmonyDirPath}/harmony_db_{ourShard}")
+    harmonyDBSize = subprocess.getoutput(f"du -h {validatorToolbox.harmonyDirPath}/harmony_db_{ourShard}")
     harmonyDBSize = harmonyDBSize.rstrip('\t')
     return harmonyDBSize[:-41]
+
 
 def shardStats(ourShard) -> str:
     ourUptime = subprocess.getoutput("uptime")
@@ -570,18 +550,17 @@ def shardStats(ourShard) -> str:
             f"echo '\n* Uptime :: {ourUptime}\n\n Harmony DB 0 Size  ::  {dbZeroSize}\n'"
         )
         os.system(
-            f"{harmonyAppPath} -V"
+            f"{validatorToolbox.harmonyAppPath} -V"
         )
     else:
         os.system(
             f"echo '\n* Uptime :: {ourUptime}\n\n Harmony DB 0 Size  ::  {dbZeroSize}\n Harmony DB {ourShard} Size  ::   {getDBSize(str(ourShard))}\n'"
         )
         os.system(
-            f"{harmonyAppPath} -V"
+            f"{validatorToolbox.harmonyAppPath} -V"
         )
     printStars()
     return
-
 
 
 def menuBinaryUpdates():
@@ -694,8 +673,8 @@ def menuCheckBalance() -> None:
         printStarsReset()
         print("* Calling mainnet and testnet for balances...")
         printStars()
-        total_balance = account.get_total_balance(validatorWallet, endpoint=main_net_rpc)
-        total_balance_test = account.get_total_balance(validatorWallet, endpoint=test_net_rpc)
+        total_balance = account.get_total_balance(validatorWallet, endpoint=validatorToolbox.main_net_rpc)
+        total_balance_test = account.get_total_balance(validatorWallet, endpoint=validatorToolbox.test_net_rpc)
         print(f"* Your Validator Wallet Balance on Mainnet is: {total_balance*0.000000000000000001} Harmony ONE Coins")
         print(f"* Your Validator Wallet Balance on Testnet is: {total_balance_test*0.000000000000000001} Harmony ONE Test Coins")
         printStars()
@@ -730,8 +709,8 @@ def balanceCheckAny():
     )
     print("* Calling mainnet and testnet for balances...")
     printStarsReset()
-    total_balance = account.get_total_balance(checkWallet, endpoint=main_net_rpc)
-    total_balance_test = account.get_total_balance(checkWallet, endpoint=test_net_rpc)
+    total_balance = account.get_total_balance(checkWallet, endpoint=validatorToolbox.main_net_rpc)
+    total_balance_test = account.get_total_balance(checkWallet, endpoint=validatorToolbox.test_net_rpc)
     print(f"* The Wallet Balance is: {total_balance*0.000000000000000001} Harmony ONE Coins")
     print(f"* Your Validator Wallet Balance on Testnet is: {total_balance_test*0.000000000000000001} Harmony ONE Test Coins")
     printStars()
@@ -743,11 +722,9 @@ def finish_node():
     print("Don't forget to check for some BINGOs with:")
     print()
     print(
-        f"tail -f /home/{activeUserName}/harmony/latest/zerolog-harmony.log | grep BINGO"
+        f"tail -f /home/{validatorToolbox.activeUserName}/harmony/latest/zerolog-harmony.log | grep BINGO"
     )
     print()
     print("Thanks for using Easy Node - EZ Mode! Goodbye.")
     printStars()
-    if environ.get("FIRST_RUN"):
-        dotenv.unset_key(dotenv_file, "FIRST_RUN")
     raise SystemExit(0)
